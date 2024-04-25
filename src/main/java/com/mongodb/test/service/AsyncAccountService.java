@@ -119,7 +119,7 @@ public class AsyncAccountService {
                         logger.info("Start Transaction: " + tranId);
                         if (isBatch) {
                             this.transferBatch(clientSession, transfer, shard);
-                        }else {
+                        } else {
                             this.transfer(clientSession, transfer, hasError, shard);
                         }
                         while (true) {
@@ -168,7 +168,7 @@ public class AsyncAccountService {
         for (Transfer transfer : transfers) {
             if (isBatch) {
                 this.transferBatch(null, transfer, shard);
-            }else {
+            } else {
                 this.transfer(null, transfer, hasError, shard);
             }
         }
@@ -179,7 +179,7 @@ public class AsyncAccountService {
     public CompletableFuture<Void> transfer(Transfer transfer, boolean isBatch, String shard) {
         if (isBatch) {
             this.transferBatch(null, transfer, shard);
-        }else {
+        } else {
             this.transfer(null, transfer, shard);
         }
         return CompletableFuture.completedFuture(null);
@@ -229,14 +229,16 @@ public class AsyncAccountService {
             } else {
                 double eachAccountBalance = (double) transferAmount / t.getToAccountId().size();
 
-                if (clientSession != null) {
-                    collection.updateMany(clientSession, Filters.eq("_id", t.getToAccountId()), Updates.inc("balance", eachAccountBalance));
-                } else {
-                    collection.updateMany(Filters.eq("_id", t.getToAccountId()), Updates.inc("balance", eachAccountBalance));
-                }
-
                 List<TransferLog> transferLogList = new ArrayList<>(t.getToAccountId().size());
                 for (Integer toAccountId : t.getToAccountId()) {
+                    if (hasError && Math.random() > 0.8) {
+                        throw new RuntimeException("Unexpected error. Something went wrong");
+                    }
+                    if (clientSession != null) {
+                        collection.updateMany(clientSession, Filters.eq("_id", toAccountId), Updates.inc("balance", eachAccountBalance));
+                    } else {
+                        collection.updateMany(Filters.eq("_id", toAccountId), Updates.inc("balance", eachAccountBalance));
+                    }
                     transferLogList.add(new TransferLog(eachAccountBalance, t.getFromAccountId(), toAccountId));
                 }
 
@@ -248,7 +250,7 @@ public class AsyncAccountService {
             }
             sw.stop();
         } catch (Exception e) {
-            logger.error("Exception occur errorMsg={}, errorCause={}, errorStackTrace={}", e.getMessage(), e.getCause(), e.getStackTrace(), e);
+            //logger.error("Exception occur errorMsg={}, errorCause={}, errorStackTrace={}", e.getMessage(), e.getCause(), e.getStackTrace(), e);
             throw e;
         }
     }
@@ -301,8 +303,7 @@ public class AsyncAccountService {
         }
     }
 
-    public void longTransaction(long waitTime, List<Transfer> transfers) throws InterruptedException {
-        for (Transfer transfer : transfers) {
+    public void longTransaction(long waitTime, Transfer transfer) throws InterruptedException {
             UUID tranId = null;
             while (true) {
                 try {
@@ -348,7 +349,6 @@ public class AsyncAccountService {
                     }
                 }
             }
-        }
 
         // final ClientSession clientSession = client.startSession();
         // UUID tranId = clientSession.getServerSession().getIdentifier().getBinary("id").asUuid();

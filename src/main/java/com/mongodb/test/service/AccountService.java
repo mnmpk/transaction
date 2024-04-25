@@ -2,6 +2,7 @@ package com.mongodb.test.service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -15,6 +16,8 @@ import org.springframework.util.StopWatch;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Accumulators;
+import com.mongodb.client.model.Aggregates;
 import com.mongodb.test.model.Account;
 import com.mongodb.test.model.Stat;
 import com.mongodb.test.model.Transfer;
@@ -167,9 +170,9 @@ public class AccountService {
         sw.stop();
         s.setDuration(sw.getTotalTimeMillis());
         s.setEndAt(LocalDateTime.now());
-        // Document doc = database.getCollection(collectionName).aggregate(Arrays.asList(
-        //         Aggregates.group("true", Accumulators.sum("total", "$balance")))).first();
-        // logger.info("End Batch, total amount in the world:" + doc.toString());
+        Document doc = database.getCollection(collectionName).aggregate(Arrays.asList(
+                 Aggregates.group("true", Accumulators.sum("total", "$balance")))).first();
+        logger.info("End Batch, total amount in the world:" + doc.toString());
         return s;
     }
 
@@ -181,7 +184,7 @@ public class AccountService {
         s.setStartAt(LocalDateTime.now());
         StopWatch sw = new StopWatch();
         sw.start();
-        this.asyncService.longTransaction(waitTime, generateTransfer());
+        this.asyncService.longTransaction(waitTime, generateTransfer().get(0));
         sw.stop();
         s.setDuration(sw.getTotalTimeMillis());
         s.setEndAt(LocalDateTime.now());
