@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StopWatch;
+import org.yaml.snakeyaml.util.ArrayUtils;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -70,15 +71,18 @@ public class AccountService {
     public Stat init(boolean clear, String shard) throws InterruptedException {
         Stat s = new Stat();
         MongoCollection<Account> collection = database.getCollection(collectionName, Account.class);
-        MongoCollection<TransferLog> transferLogCollection = database.getCollection(transferLogCollectionName, TransferLog.class);
+        MongoCollection<TransferLog> transferLogCollection = database.getCollection(transferLogCollectionName,
+                TransferLog.class);
 
         if (shard != null) {
             if ("hashed".equalsIgnoreCase(shard)) {
                 collection = database.getCollection(collectionName + "HashedShard", Account.class);
-                transferLogCollection = database.getCollection(transferLogCollectionName + "HashedShard", TransferLog.class);
+                transferLogCollection = database.getCollection(transferLogCollectionName + "HashedShard",
+                        TransferLog.class);
             } else if ("ranged".equalsIgnoreCase(shard)) {
                 collection = database.getCollection(collectionName + "RangedShard", Account.class);
-                transferLogCollection = database.getCollection(transferLogCollectionName + "HashedShard", TransferLog.class);
+                transferLogCollection = database.getCollection(transferLogCollectionName + "HashedShard",
+                        TransferLog.class);
             }
         }
 
@@ -116,8 +120,8 @@ public class AccountService {
         s.setBatchSize(accounts.size());
         s.setStartAt(LocalDateTime.now());
         sw.start();
-        //ends.stream().map(CompletableFuture::join).forEach((sw) -> {
-        //});
+        // ends.stream().map(CompletableFuture::join).forEach((sw) -> {
+        // });
         CompletableFuture.allOf(ends.toArray(new CompletableFuture[ends.size()])).join();
         sw.stop();
         s.setDuration(sw.getTotalTimeMillis());
@@ -125,6 +129,7 @@ public class AccountService {
 
         return s;
     }
+
     public Stat transferMultiple(MODE mode, boolean isBatch, String shard) {
         return this.transferMultiple(mode, isBatch, false, shard);
     }
@@ -163,7 +168,7 @@ public class AccountService {
         }
 
         s.setOperation("transfer-update");
-        s.setBatchSize(noOfTransfer * ((transferAmount*2) + 1));
+        s.setBatchSize(noOfTransfer * ((transferAmount * 2) + 1));
         s.setStartAt(LocalDateTime.now());
         sw.start();
         CompletableFuture.allOf(ends.toArray(new CompletableFuture[ends.size()])).join();
@@ -171,7 +176,7 @@ public class AccountService {
         s.setDuration(sw.getTotalTimeMillis());
         s.setEndAt(LocalDateTime.now());
         Document doc = database.getCollection(collectionName).aggregate(Arrays.asList(
-                 Aggregates.group("true", Accumulators.sum("total", "$balance")))).first();
+                Aggregates.group("true", Accumulators.sum("total", "$balance")))).first();
         logger.info("End Batch, total amount in the world:" + doc.toString());
         return s;
     }
@@ -217,4 +222,44 @@ public class AccountService {
         return ((int) Math.floor(Math.random() * noOfAccount) + 1);
     }
 
+    public Stat orderMultiple() {
+        Stat s = new Stat();
+        StopWatch sw = new StopWatch();
+        var ends = new ArrayList<CompletableFuture<Void>>();
+
+        int[] orders = new int[500];
+        int total = 0;
+        for (int i = 0; i < orders.length; i++) {
+            orders[i] = ((int) Math.floor(Math.random() * 3) + 1);
+            total +=orders[i];
+        }
+        logger.info("total:"+total);
+
+        int pageSize = orders.length / this.noOfThread;
+        if (pageSize <= 0) {
+            pageSize = 1;
+        }
+        int orderPages = orders.length / pageSize;
+        for (int pageIdx = 0; pageIdx <= orderPages; pageIdx++) {
+            int fromIdx = pageIdx * pageSize;
+            int toIdx = Math.min(orders.length, (pageIdx + 1) * pageSize);
+
+            //ends.add(this.asyncService.flashOrderCore(Arrays.copyOfRange(orders, fromIdx, toIdx)));
+            ends.add(this.asyncService.flashOrder(Arrays.copyOfRange(orders, fromIdx, toIdx)));
+
+            if (toIdx == orders.length) {
+                break;
+            }
+        }
+
+        s.setOperation("transfer-update");
+        s.setBatchSize(orders.length * 2);
+        s.setStartAt(LocalDateTime.now());
+        sw.start();
+        CompletableFuture.allOf(ends.toArray(new CompletableFuture[ends.size()])).join();
+        sw.stop();
+        s.setDuration(sw.getTotalTimeMillis());
+        s.setEndAt(LocalDateTime.now());
+        return s;
+    }
 }
