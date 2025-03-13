@@ -3,6 +3,7 @@ package com.mongodb.test.configuration;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.MongoTransactionException;
@@ -16,17 +17,20 @@ import com.mongodb.MongoException;
 public class TransactionAspect {
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    @Around("execution(* com.mongodb.test.service.AsyncAccountService.*(..))")
+    // @Around("execution(*
+    // com.mongodb.test.service.AsyncAccountService.transferSpring(..))")
+    @Around("@annotation(org.springframework.transaction.annotation.Transactional)")
     public Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
+        Object obj;
         while (true) {
             try {
-                logger.info("aroundAdvice");
-                return joinPoint.proceed();
-            } catch(MongoTransactionException|UncategorizedMongoDbException e){
-                if (((MongoException)e.getCause()).hasErrorLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL)) {
+                obj = joinPoint.proceed();
+                break;
+            } catch (MongoTransactionException | UncategorizedMongoDbException e) {
+                if (((MongoException) e.getCause()).hasErrorLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL)) {
                     logger.info("TransientTransactionError, aborting transaction and retrying ...");
                     try {
-                        Thread.sleep((int)(1000*Math.random()));
+                        Thread.sleep((int) (1000 * Math.random()));
                     } catch (InterruptedException e1) {
                         e1.printStackTrace();
                     }
@@ -36,5 +40,6 @@ public class TransactionAspect {
                 }
             }
         }
+        return obj;
     }
 }

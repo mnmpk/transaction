@@ -22,7 +22,7 @@ settings:
   noOfAccount: 100 # Total no. of Accounts, fewer accounts will have greater chance to introduce write conflict (transaction retry)
   initialBalance: 1000000 # Initial balance of each accounts
   noOfTransfer: 100 # How many transfer occurs simultaneously, Higher value will introduce more transaction/greater batch size
-  transferAmount: 80 # [Only use for demonstrate write conflit] How many amount will be deduct from a random account and thus how many random transferee accounts balance will be added by $1 each, greater number will introduce greater chance of write conflict (transaction retry)
+  transferAmount: 3 # [Only use for demonstrate write conflit] How many amount will be deduct from a random account and thus how many random transferee accounts balance will be added by $1 each, greater number will introduce greater chance of write conflict (transaction retry)
   idPrefix: 100000000
 
   #App thread pool setting

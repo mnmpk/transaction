@@ -844,32 +844,35 @@ public class AsyncAccountService {
         }
     }
 
-    @Async
-    public CompletableFuture<Void> transferSpring(List<Transfer> transfers) {
-        for (Transfer tr : transfers) {
-            Optional<Account> oFromAcct = accountRepository.findById(tr.getFromAccountId().intValue());
-            if (oFromAcct.isPresent()) {
-                transfer(oFromAcct.get(),
-                        tr.getToAccountId().stream().map(i -> accountRepository.findById(i)).toList());
-            }else{
-                logger.info("acct not found");
-            }
+    //@Async
+    @Transactional
+    public CompletableFuture<Void> transferSpring(List<Transfer> subList) {
+        for (Transfer tr : subList) {
+            transferSpring(tr.getFromAccountId(),
+                    tr.getToAccountId());
         }
         return CompletableFuture.completedFuture(null);
     }
 
-    @Transactional
-    private void transfer(Account fromAcct, List<Optional<Account>> toAccounts) {
-        fromAcct.setBalance(fromAcct.getBalance() - (double) toAccounts.size());
-        accountRepository.save(fromAcct);
-        for (Optional<Account> oA : toAccounts) {
-            if (oA.isPresent()) {
-                Account toAcct = oA.get();
-                toAcct.setBalance(fromAcct.getBalance() + 1);
-                accountRepository.save(toAcct);
-            }else{
-                logger.info("acct not found");
+    public void transferSpring(Integer fromAcctId, List<Integer> toAccountIds) {
+        Optional<Account> oFromAcct = accountRepository.findById(fromAcctId);
+        if (oFromAcct.isPresent()) {
+            Account fromAcct = oFromAcct.get();
+            fromAcct.setBalance(fromAcct.getBalance() - (double) toAccountIds.size());
+            accountRepository.save(fromAcct);
+            for (Integer toAccountId : toAccountIds) {
+                Optional<Account> oToAcct = accountRepository.findById(toAccountId);
+                if (oToAcct.isPresent()) {
+                    Account toAcct = oToAcct.get();
+                    toAcct.setBalance(toAcct.getBalance() + 1);
+                    accountRepository.save(toAcct);
+                    logger.info("from" + fromAcct.getId() + ",to" + toAcct.getId());
+                } else {
+                    logger.info("acct not found");
+                }
             }
+        } else {
+            logger.info("acct not found");
         }
     }
 

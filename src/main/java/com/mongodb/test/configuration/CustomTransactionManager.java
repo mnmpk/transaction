@@ -7,6 +7,8 @@ import org.springframework.data.mongodb.MongoTransactionManager;
 import org.springframework.data.mongodb.UncategorizedMongoDbException;
 
 import com.mongodb.MongoException;
+import com.mongodb.ReadConcern;
+import com.mongodb.TransactionOptions;
 
 public class CustomTransactionManager extends MongoTransactionManager {
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -15,7 +17,9 @@ public class CustomTransactionManager extends MongoTransactionManager {
         super();
     }
 	public CustomTransactionManager(MongoDatabaseFactory dbFactory) {
-        super(dbFactory);
+        super(dbFactory, TransactionOptions.builder()
+            .readConcern(ReadConcern.MAJORITY)
+            .build());
     }
     @Override
 	protected void doCommit(MongoTransactionObject transactionObject) throws Exception {
