@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StopWatch;
-import org.yaml.snakeyaml.util.ArrayUtils;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -30,7 +29,8 @@ public class AccountService {
     public static enum MODE {
         NO_TRANSACTION,
         CALLBACK,
-        CORE
+        CORE,
+        SPRING
     };
 
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -134,7 +134,7 @@ public class AccountService {
         return this.transferMultiple(mode, isBatch, false, shard);
     }
 
-    public Stat transferMultiple(MODE mode, boolean isBatch, boolean hasError, String shard) {
+    public Stat transferMultiple(MODE mode, Boolean isBatch, Boolean hasError, String shard) {
         Stat s = new Stat();
         StopWatch sw = new StopWatch();
         var ends = new ArrayList<CompletableFuture<Void>>();
@@ -159,6 +159,9 @@ public class AccountService {
                     break;
                 case CORE:
                     ends.add(this.asyncService.coreTransfer(subList, isBatch, hasError, shard));
+                    break;
+                case SPRING:
+                    ends.add(this.asyncService.transferSpring(subList));
                     break;
             }
 
@@ -231,9 +234,9 @@ public class AccountService {
         int total = 0;
         for (int i = 0; i < orders.length; i++) {
             orders[i] = ((int) Math.floor(Math.random() * 3) + 1);
-            total +=orders[i];
+            total += orders[i];
         }
-        logger.info("total:"+total);
+        logger.info("total:" + total);
 
         int pageSize = orders.length / this.noOfThread;
         if (pageSize <= 0) {
@@ -244,7 +247,8 @@ public class AccountService {
             int fromIdx = pageIdx * pageSize;
             int toIdx = Math.min(orders.length, (pageIdx + 1) * pageSize);
 
-            //ends.add(this.asyncService.flashOrderCore(Arrays.copyOfRange(orders, fromIdx, toIdx)));
+            // ends.add(this.asyncService.flashOrderCore(Arrays.copyOfRange(orders, fromIdx,
+            // toIdx)));
             ends.add(this.asyncService.flashOrder(Arrays.copyOfRange(orders, fromIdx, toIdx)));
 
             if (toIdx == orders.length) {

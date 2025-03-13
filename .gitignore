@@ -1,10 +1,4 @@
-/target/classes/com/mongodb/test/service/AccountService$1.class
-/target/classes/com/mongodb/test/service/AccountService$MODE.class
-/target/classes/com/mongodb/test/service/AccountService.class
-/target/classes/com/mongodb/test/configuration/AppConfig.class
-/target/classes/com/mongodb/test/service/AsyncAccountService$1.class
-/target/classes/com/mongodb/test/service/AsyncAccountService.class
-/target/classes/com/mongodb/test/controller/CallbackAPIController.class
+/target/
 /.idea/compiler.xml
 /target/classes/com/mongodb/test/controller/CoreAPIController.class
 /.idea/encodings.xml

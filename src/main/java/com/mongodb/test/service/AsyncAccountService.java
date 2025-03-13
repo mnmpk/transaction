@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StopWatch;
 
 import com.mongodb.MongoException;
@@ -32,9 +34,11 @@ import com.mongodb.client.model.InsertOneModel;
 import com.mongodb.client.model.ReturnDocument;
 import com.mongodb.client.model.UpdateManyModel;
 import com.mongodb.client.model.Updates;
+import com.mongodb.test.configuration.MongoTransactional;
 import com.mongodb.test.model.Account;
 import com.mongodb.test.model.Transfer;
 import com.mongodb.test.model.TransferLog;
+import com.mongodb.test.repo.AccountRepository;
 
 @Service
 public class AsyncAccountService {
@@ -61,6 +65,9 @@ public class AsyncAccountService {
 
     @Value("${settings.noOfAccount}")
     private int noOfAccount;
+
+    @Autowired
+    private AccountRepository accountRepository;
 
     @Async
     public CompletableFuture<StopWatch> insertMany(MongoCollection<Account> collection, List<Account> accounts)
@@ -834,6 +841,35 @@ public class AsyncAccountService {
             logger.error("transferCase10, Exception Occur: t={} errorMsg={}, errorCause={}, errorStackTrace={}", t,
                     e.getMessage(), e.getCause(), e.getStackTrace(), e);
             throw e;
+        }
+    }
+
+    @Async
+    public CompletableFuture<Void> transferSpring(List<Transfer> transfers) {
+        for (Transfer tr : transfers) {
+            Optional<Account> oFromAcct = accountRepository.findById(tr.getFromAccountId().intValue());
+            if (oFromAcct.isPresent()) {
+                transfer(oFromAcct.get(),
+                        tr.getToAccountId().stream().map(i -> accountRepository.findById(i)).toList());
+            }else{
+                logger.info("acct not found");
+            }
+        }
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Transactional
+    private void transfer(Account fromAcct, List<Optional<Account>> toAccounts) {
+        fromAcct.setBalance(fromAcct.getBalance() - (double) toAccounts.size());
+        accountRepository.save(fromAcct);
+        for (Optional<Account> oA : toAccounts) {
+            if (oA.isPresent()) {
+                Account toAcct = oA.get();
+                toAcct.setBalance(fromAcct.getBalance() + 1);
+                accountRepository.save(toAcct);
+            }else{
+                logger.info("acct not found");
+            }
         }
     }
 

@@ -1,20 +1,28 @@
 spring:
   data:
     mongodb:
-      uri: mongodb+srv://admin:admin@demo.uskpz.mongodb.net/test?authSource=admin
+      uri: mongodb+srv://admin:admin12345@demo.uskpz.mongodb.net/test-transaction?authSource=admin
       #uri: mongodb+srv://admin:admin@atlassearch.uskpz.mongodb.net/test?authSource=admin
       #uri: mongodb+srv://admin:admin@fisc-shard-test.uskpz.mongodb.net/test?authSource=admin
+logging:
+  level:
+    org:
+      springframework:
+        data:
+          mongodb:
+            core:
+#              MongoTemplate: DEBUG
 settings:
   dbName: test-transaction
   collectionName: account
   transferLogCollectionName: transferLog
 
-  noOfServer: 5
+  noOfServer: 1
   noOfThread: 10 # No. of workers to process generated transaction, Higher value will introduce more transaction & threads, Lower value will introduce larger batch size
-  noOfAccount: 1000000 # Total no. of Accounts, fewer accounts will have greater chance to introduce write conflict (transaction retry)
-  initialBalance: 1000 # Initial balance of each accounts
+  noOfAccount: 100 # Total no. of Accounts, fewer accounts will have greater chance to introduce write conflict (transaction retry)
+  initialBalance: 1000000 # Initial balance of each accounts
   noOfTransfer: 100 # How many transfer occurs simultaneously, Higher value will introduce more transaction/greater batch size
-  transferAmount: 1 # [Only use for demonstrate write conflit] How many amount will be deduct from a random account and thus how many random transferee accounts balance will be added by $1 each, greater number will introduce greater chance of write conflict (transaction retry)
+  transferAmount: 80 # [Only use for demonstrate write conflit] How many amount will be deduct from a random account and thus how many random transferee accounts balance will be added by $1 each, greater number will introduce greater chance of write conflict (transaction retry)
   idPrefix: 100000000
 
   #App thread pool setting
