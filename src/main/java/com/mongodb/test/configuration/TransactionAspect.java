@@ -3,7 +3,6 @@ package com.mongodb.test.configuration;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.MongoTransactionException;
@@ -19,7 +18,8 @@ public class TransactionAspect {
 
     // @Around("execution(*
     // com.mongodb.test.service.AsyncAccountService.transferSpring(..))")
-    @Around("@annotation(org.springframework.transaction.annotation.Transactional)")
+    //@Around("@annotation(org.springframework.transaction.annotation.Transactional)")
+    @Around("execution(* com.mongodb.test.repo.AccountRepository.save(..))")
     public Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
         Object obj;
         while (true) {
